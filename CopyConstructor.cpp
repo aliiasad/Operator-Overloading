@@ -29,11 +29,13 @@ Student :: Student(const char* n, int a)    {
     age = a;
 }
 
-Student :: Student(const Student& n)   {
-    name = new char[strlen(n.name) + 1];
-    strcpy(n.name, name);
-    age = n.age;
+Student :: Student(const Student& dummy)   {
+    name = new char[strlen(dummy.name) + 1];
+    strcpy(dummy.name, name);
+    age = dummy.age;
 }
+
+
 
 Student :: ~Student()   {
     delete[] name;
