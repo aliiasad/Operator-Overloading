@@ -1,0 +1,929 @@
+================================================================================
+             COMPLETE GUIDE TO OPERATOR OVERLOADING IN C++ (OOP)
+================================================================================
+                         Author: Study Notes
+                         Topic: Operator Overloading
+================================================================================
+
+
+TABLE OF CONTENTS
+-----------------
+1. What is Operator Overloading?
+2. Why Do We Need It?
+3. The Syntax (How to Write It)
+4. Member vs Non-Member (Friend) Functions
+5. The 3 Questions You Must Ask Every Time
+6. Detailed Examples of Every Common Operator
+   6.1  Assignment Operator        ( = )
+   6.2  Equality Operator          ( == )
+   6.3  Inequality Operator        ( != )
+   6.4  Addition Operator          ( + )
+   6.5  Subtraction Operator       ( - )
+   6.6  Less Than Operator         ( < )
+   6.7  Greater Than Operator      ( > )
+   6.8  Less Than or Equal         ( <= )
+   6.9  Greater Than or Equal      ( >= )
+   6.10 Stream Insertion           ( << )
+   6.11 Stream Extraction          ( >> )
+   6.12 Subscript Operator         ( [] )
+   6.13 Pre-increment Operator     ( ++obj )
+   6.14 Post-increment Operator    ( obj++ )
+   6.15 Pre-decrement Operator     ( --obj )
+   6.16 Post-decrement Operator    ( obj-- )
+   6.17 Negation / Unary Minus     ( - )
+   6.18 Not Operator               ( ! )
+7. The Complete Mental Checklist
+8. Common Mistakes and How to Avoid Them
+9. Operators You CANNOT Overload
+10. Quick Reference Cheat Sheet
+
+
+================================================================================
+1. WHAT IS OPERATOR OVERLOADING?
+================================================================================
+
+In C++, operators like +, -, =, ==, <, >, <<, >> etc. already work for
+built-in types like int, float, double, char.
+
+Example:
+    int a = 5, b = 3;
+    int c = a + b;        // C++ knows how to add two ints
+    if (a == b) { ... }   // C++ knows how to compare two ints
+
+BUT when you create your OWN class (like Student, Car, Matrix), C++ has
+NO IDEA what + or == means for your class.
+
+    Student s1("Alice", 20);
+    Student s2("Bob", 22);
+    Student s3 = s1 + s2;    // ERROR! C++ doesn't know how to add Students
+
+OPERATOR OVERLOADING = Teaching C++ what an operator means for YOUR class.
+
+After overloading, you CAN write:
+    Student s3 = s1 + s2;    // Works! Because YOU defined what + means
+    if (s1 == s2) { ... }    // Works! Because YOU defined what == means
+    cout << s1;              // Works! Because YOU defined what << means
+
+
+================================================================================
+2. WHY DO WE NEED IT?
+================================================================================
+
+Without operator overloading, you'd have to write ugly function calls:
+
+    WITHOUT overloading:
+    -------------------
+    if (s1.isEqualTo(s2)) { ... }
+    Student s3 = s1.add(s2);
+    s1.print();
+
+    WITH overloading:
+    -----------------
+    if (s1 == s2) { ... }
+    Student s3 = s1 + s2;
+    cout << s1;
+
+The second version is MUCH cleaner and more natural to read.
+
+IMPORTANT: Operator overloading is just a NICER WAY to call functions.
+           Behind the scenes, s1 + s2 is actually calling s1.operator+(s2)
+
+
+================================================================================
+3. THE SYNTAX (HOW TO WRITE IT)
+================================================================================
+
+Every operator overload follows this pattern:
+
+    ReturnType  operator⊕  (Parameters) {
+        // Define what ⊕ does for your class
+    }
+
+Breaking it down:
+
+    ReturnType  → What does the operation give back?
+                  - bool for comparisons (==, !=, <, >, <=, >=)
+                  - Class& for assignment (=) and increment (++, --)
+                  - Class for arithmetic (+, -, *, /)
+                  - ostream& for <<
+                  - istream& for >>
+
+    operator    → This is a KEYWORD. Always required. It tells C++ that
+                  you're overloading an operator, not just naming a function.
+
+    ⊕           → The actual operator symbol you want to overload
+                  (+, -, =, ==, !=, <, >, <<, >>, [], ++, --, etc.)
+
+    Parameters  → What's on the RIGHT side of the operator
+                  - Binary operators (like +, ==): ONE parameter
+                  - Unary operators (like ++, !): ZERO parameters (member)
+                  - Stream operators (<<, >>): TWO parameters (friend)
+
+EXAMPLE:
+    s1 + s2
+    ↓    ↓
+    ↓    └── This becomes the parameter
+    └─────── This becomes 'this' (the calling object)
+
+    So s1 + s2  is actually  s1.operator+(s2)
+
+
+================================================================================
+4. MEMBER vs NON-MEMBER (FRIEND) FUNCTIONS
+================================================================================
+
+There are TWO ways to write an operator overload:
+
+A) AS A MEMBER FUNCTION (inside the class):
+   -----------------------------------------
+   - The LEFT side of the operator is automatically 'this'
+   - You only pass the RIGHT side as a parameter
+
+   class Student {
+       bool operator==(const Student& other) {
+           // 'this' is the left side
+           // 'other' is the right side
+       }
+   };
+
+   Usage: s1 == s2  →  s1.operator==(s2)
+          ↑    ↑
+          this  other
+
+
+B) AS A FRIEND (NON-MEMBER) FUNCTION:
+   ------------------------------------
+   - NOT inside the class
+   - BOTH sides are passed as parameters
+   - Declared as 'friend' inside the class to access private members
+
+   class Student {
+       friend ostream& operator<<(ostream& out, const Student& s);
+   };
+
+   // Defined OUTSIDE the class, NO Student:: prefix
+   ostream& operator<<(ostream& out, const Student& s) {
+       out << s.name;
+       return out;
+   }
+
+
+WHEN TO USE WHICH?
+
+   MUST be MEMBER:
+   - Assignment       =
+   - Subscript        []
+   - Function call    ()
+   - Arrow            ->
+
+   MUST be FRIEND (non-member):
+   - Stream insertion   <<
+   - Stream extraction  >>
+
+   WHY must << be friend?
+   Because: cout << s1
+            ↑      ↑
+            ↑      └── Student (right side)
+            └── ostream (left side)
+
+   The LEFT side is cout (an ostream object), NOT a Student.
+   So this can't be a Student member function because the calling
+   object (left side) is not a Student!
+
+   CAN be EITHER (your choice):
+   - All comparison operators  ==  !=  <  >  <=  >=
+   - All arithmetic operators  +  -  *  /
+   - Increment/Decrement       ++  --
+
+
+================================================================================
+5. THE 3 QUESTIONS YOU MUST ASK EVERY TIME
+================================================================================
+
+Before overloading ANY operator, answer these three questions:
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                                                             │
+   │  Q1: What does this operator MEAN for my class?             │
+   │      → Define the logic. What should happen?                │
+   │                                                             │
+   │  Q2: What should it RETURN?                                 │
+   │      → bool? Class&? Class? stream&?                        │
+   │                                                             │
+   │  Q3: Should it be a MEMBER function or a FRIEND function?   │
+   │      → Check the rules in Section 4 above                  │
+   │                                                             │
+   └─────────────────────────────────────────────────────────────┘
+
+Example thought process for overloading == :
+
+   Q1: What does == mean for Student?
+       → Two students are equal if they have the same name AND same age.
+
+   Q2: What should == return?
+       → bool (true or false)
+
+   Q3: Member or friend?
+       → Either works. I'll use member since it's simpler.
+
+   Result:
+       bool Student::operator==(const Student& other) {
+           return (mystrcmp(name, other.name) == 0 && age == other.age);
+       }
+
+
+================================================================================
+6. DETAILED EXAMPLES OF EVERY COMMON OPERATOR
+================================================================================
+
+Let's use this class for all examples:
+
+    class Student {
+    private:
+        char* name;      // dynamically allocated (uses new[])
+        int age;
+    public:
+        Student();
+        Student(const char* n, int a);
+        Student(const Student& other);    // copy constructor
+        ~Student();                       // destructor (uses delete[])
+
+        // Operator overloads will go here
+    };
+
+--------------------------------------------------------------------------------
+6.1  ASSIGNMENT OPERATOR  ( = )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Copies data from one EXISTING object to another EXISTING object.
+RETURNS:      Student& (reference to current object, for chaining a = b = c)
+TYPE:         MUST be member function
+
+    Student& Student::operator=(const Student& other) {
+
+        // STEP 1: Self-assignment check
+        // ─────────────────────────────
+        // What if someone writes: s1 = s1; ?
+        // Without this check:
+        //   - We'd delete s1.name (Step 2)
+        //   - Then try to copy from other.name... which IS s1.name
+        //   - But we just deleted it! CRASH! 💥
+        //
+        // 'this' = pointer to left side object
+        // '&other' = address of right side object
+        // If they're the same address → same object → skip everything
+
+        if (this == &other) return *this;
+
+        // STEP 2: Delete OLD data
+        // ───────────────────────
+        // The current object (this) already has a 'name' pointing to
+        // some memory. If we just overwrite the pointer, that old
+        // memory is LOST forever (memory leak!).
+        // So we FREE it first.
+
+        delete[] name;
+
+        // STEP 3: Allocate NEW memory and DEEP COPY
+        // ──────────────────────────────────────────
+        // Why not just: name = other.name; ?
+        // Because that's a SHALLOW COPY — both objects would point to
+        // the SAME memory. When one is destroyed (delete[] in destructor),
+        // the other now points to deleted memory! CRASH! 💥
+        //
+        // So we allocate FRESH memory and copy the CONTENT.
+        // +1 for the null terminator '\0'
+
+        name = new char[mystrlen(other.name) + 1];
+        mystrcpy(other.name, name);
+        age = other.age;
+
+        // STEP 4: Return *this
+        // ────────────────────
+        // *this = the current object itself (not a pointer, the object)
+        // We return it by REFERENCE (Student&)
+        // This enables CHAINING: s1 = s2 = s3;
+        //   → s2 = s3 runs first, returns s2
+        //   → then s1 = s2 runs
+
+        return *this;
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    Student s2("Bob", 22);
+    s2 = s1;              // s2 now has name="Alice", age=20
+    s1 = s2 = s3;         // chaining works!
+
+NOTE: This is DIFFERENT from the copy constructor!
+    Student s3 = s1;      // This calls COPY CONSTRUCTOR (creating new object)
+    s3 = s1;              // This calls ASSIGNMENT OPERATOR (both already exist)
+
+
+--------------------------------------------------------------------------------
+6.2  EQUALITY OPERATOR  ( == )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Checks if two Student objects are equal.
+RETURNS:      bool (true or false)
+TYPE:         Member function (can also be friend)
+
+    bool Student::operator==(const Student& other) {
+        // Compare ALL relevant fields
+        // Both must match for students to be "equal"
+
+        if (mystrcmp(name, other.name) == 0 && age == other.age) {
+            return true;
+        }
+        return false;
+
+        // SHORTER VERSION:
+        // return (mystrcmp(name, other.name) == 0 && age == other.age);
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    Student s2("Alice", 20);
+    Student s3("Bob", 22);
+
+    if (s1 == s2)  →  true   ✅
+    if (s1 == s3)  →  false  ❌
+
+HOW IT MAPS:
+    s1 == s2
+    ↓     ↓
+    this  other
+    So it's actually: s1.operator==(s2)
+
+
+--------------------------------------------------------------------------------
+6.3  INEQUALITY OPERATOR  ( != )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Checks if two Students are NOT equal.
+RETURNS:      bool
+TYPE:         Member function
+
+    bool Student::operator!=(const Student& other) {
+        // SMART TRICK: Reuse the == operator you already wrote!
+        // If they ARE equal, return false (they're NOT unequal)
+        // If they're NOT equal, return true (they ARE unequal)
+
+        return !(*this == other);
+
+        // *this = the current object
+        // *this == other  calls our == operator
+        // ! flips the result
+    }
+
+USAGE:
+    if (s1 != s3) cout << "Different!";   // prints "Different!"
+
+
+--------------------------------------------------------------------------------
+6.4  ADDITION OPERATOR  ( + )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Creates a NEW student by combining two students.
+RETURNS:      Student (by VALUE, not reference! Because it's a NEW object)
+TYPE:         Member function
+
+    Student Student::operator+(const Student& other) {
+        // We're creating something NEW
+        // Neither s1 nor s2 should be modified
+
+        Student temp;
+
+        // Define what "addition" means for your class
+        // Here: combine the ages
+        temp.age = this->age + other.age;
+
+        // For the name, copy the left side's name (your choice)
+        temp.name = new char[mystrlen(this->name) + 1];
+        mystrcpy(this->name, temp.name);
+
+        return temp;   // Return the NEW object
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    Student s2("Bob", 22);
+    Student s3 = s1 + s2;    // s3.age = 42
+
+WHY Student AND NOT Student& ?
+    Because 'temp' is a LOCAL variable. It will be DESTROYED when the
+    function ends. You can't return a REFERENCE to something that's
+    about to be destroyed!
+
+    Assignment (=)  → returns Student&  (modifies existing, return it)
+    Addition (+)    → returns Student   (creates new, return a copy)
+
+
+--------------------------------------------------------------------------------
+6.5  SUBTRACTION OPERATOR  ( - )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Creates a NEW student by subtracting data.
+RETURNS:      Student (by value)
+TYPE:         Member function
+
+    Student Student::operator-(const Student& other) {
+        Student temp;
+        temp.age = this->age - other.age;
+        temp.name = new char[mystrlen(this->name) + 1];
+        mystrcpy(this->name, temp.name);
+        return temp;
+    }
+
+USAGE:
+    Student s3 = s1 - s2;   // s3.age = s1.age - s2.age
+
+
+--------------------------------------------------------------------------------
+6.6  LESS THAN OPERATOR  ( < )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Is one student "less than" another? (compare by age)
+RETURNS:      bool
+TYPE:         Member function
+
+    bool Student::operator<(const Student& other) {
+        return this->age < other.age;
+    }
+
+USAGE:
+    if (s1 < s2) cout << "s1 is younger";
+
+
+--------------------------------------------------------------------------------
+6.7  GREATER THAN OPERATOR  ( > )
+--------------------------------------------------------------------------------
+
+    bool Student::operator>(const Student& other) {
+        return this->age > other.age;
+    }
+
+
+--------------------------------------------------------------------------------
+6.8  LESS THAN OR EQUAL  ( <= )
+--------------------------------------------------------------------------------
+
+    bool Student::operator<=(const Student& other) {
+        // Reuse the > operator: if NOT greater, then less or equal
+        return !(*this > other);
+    }
+
+
+--------------------------------------------------------------------------------
+6.9  GREATER THAN OR EQUAL  ( >= )
+--------------------------------------------------------------------------------
+
+    bool Student::operator>=(const Student& other) {
+        // Reuse the < operator: if NOT less, then greater or equal
+        return !(*this < other);
+    }
+
+
+--------------------------------------------------------------------------------
+6.10  STREAM INSERTION OPERATOR  ( << )   — for cout
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Defines how to PRINT a Student using cout.
+RETURNS:      ostream& (reference to the output stream, for chaining)
+TYPE:         MUST be FRIEND (non-member)
+
+WHY FRIEND?
+    cout << s1
+    ↑      ↑
+    ↑      └── Student object (right side)
+    └── ostream object (left side)
+
+    The LEFT side is cout (an ostream), NOT a Student.
+    Member functions require the LEFT side to be the class.
+    Since the LEFT side is ostream, it CAN'T be a Student member.
+
+STEP 1 — Declare as friend INSIDE the class:
+
+    class Student {
+        // ... private members ...
+        friend ostream& operator<<(ostream& out, const Student& s);
+    };
+
+STEP 2 — Define OUTSIDE the class (NO Student:: prefix!):
+
+    ostream& operator<<(ostream& out, const Student& s) {
+        // 'out' is the stream (could be cout, or a file stream, etc.)
+        // 's' is the Student we want to print
+        // 'const' because printing should NOT modify the student
+
+        out << "Name: " << s.name << ", Age: " << s.age;
+
+        return out;   // Return stream for chaining
+        // This allows: cout << s1 << s2 << endl;
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    cout << s1;                    // Output: Name: Alice, Age: 20
+    cout << s1 << " - " << s2;    // Chaining works!
+
+HOW CHAINING WORKS:
+    cout << s1 << " - " << s2
+    └────┬────┘
+    returns cout ──→ cout << " - " << s2
+                     └─────┬──────┘
+                     returns cout ──→ cout << s2
+                                      └────┬───┘
+                                      returns cout (done!)
+
+
+--------------------------------------------------------------------------------
+6.11  STREAM EXTRACTION OPERATOR  ( >> )   — for cin
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Defines how to READ a Student from input (cin).
+RETURNS:      istream& (reference to the input stream, for chaining)
+TYPE:         MUST be FRIEND (same reason as <<)
+
+STEP 1 — Declare as friend INSIDE the class:
+
+    class Student {
+        friend istream& operator>>(istream& in, Student& s);
+        //                                      ↑
+        //                                NOT const! We're MODIFYING s
+    };
+
+STEP 2 — Define OUTSIDE the class:
+
+    istream& operator>>(istream& in, Student& s) {
+        char buffer[100];
+
+        cout << "Enter name: ";
+        in >> buffer;
+
+        // Free old memory first (s might already have a name)
+        delete[] s.name;
+
+        // Allocate and copy
+        s.name = new char[mystrlen(buffer) + 1];
+        mystrcpy(buffer, s.name);
+
+        cout << "Enter age: ";
+        in >> s.age;
+
+        return in;   // Return stream for chaining
+    }
+
+USAGE:
+    Student s1;
+    cin >> s1;        // Prompts for name and age
+
+
+--------------------------------------------------------------------------------
+6.12  SUBSCRIPT OPERATOR  ( [] )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Access a character of the student's name by index.
+RETURNS:      char& (reference, so you can READ and WRITE)
+TYPE:         MUST be member
+
+    char& Student::operator[](int index) {
+        // Optional: add bounds checking
+        // if (index < 0 || index >= mystrlen(name)) {
+        //     cout << "Index out of bounds!" << endl;
+        //     return name[0];  // return something safe
+        // }
+
+        return name[index];
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    cout << s1[0];     // 'A'  (reading)
+    cout << s1[1];     // 'l'  (reading)
+    s1[0] = 'B';       // name is now "Blice" (writing works because we return &)
+
+
+WHY char& AND NOT just char?
+    If we returned just 'char' (by value):
+        s1[0] = 'B';   // This would modify a COPY, not the actual name!
+    By returning char& (by reference):
+        s1[0] = 'B';   // This modifies the ACTUAL character in name!
+
+
+--------------------------------------------------------------------------------
+6.13  PRE-INCREMENT OPERATOR  ( ++obj )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Increment first, then use the value.
+RETURNS:      Student& (reference to the modified object)
+TYPE:         Member function, NO parameters
+
+    Student& Student::operator++() {
+        // Increment the age (or whatever makes sense for your class)
+        age++;
+
+        // Return the modified object
+        return *this;
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    ++s1;              // s1.age is now 21
+    Student s2 = ++s1; // s1.age becomes 22 FIRST, then s2 gets age 22
+
+
+--------------------------------------------------------------------------------
+6.14  POST-INCREMENT OPERATOR  ( obj++ )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Use the current value first, then increment.
+RETURNS:      Student (by VALUE — because we return the OLD state)
+TYPE:         Member function, ONE int parameter (dummy, just to differentiate)
+
+    Student Student::operator++(int) {
+        //                      ↑
+        //          This 'int' is a DUMMY parameter!
+        //          You don't pass anything. It just tells C++ this is POST.
+        //          Pre-increment:  operator++()     — no parameter
+        //          Post-increment: operator++(int)  — dummy int parameter
+
+        Student temp(*this);   // Save current state (using copy constructor)
+        age++;                 // Increment the actual object
+        return temp;           // Return the OLD state
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    Student s2 = s1++;
+    // s2.age = 20 (old value)
+    // s1.age = 21 (incremented after)
+
+
+WHY DOES POST RETURN BY VALUE?
+    Because 'temp' holds the OLD state. It's a local variable that will be
+    destroyed. We can't return a reference to it.
+
+    Pre:  Modify first, return *this (existing object) → return by reference
+    Post: Save old, modify, return old (temporary) → return by value
+
+
+--------------------------------------------------------------------------------
+6.15  PRE-DECREMENT OPERATOR  ( --obj )
+--------------------------------------------------------------------------------
+
+    Student& Student::operator--() {
+        age--;
+        return *this;
+    }
+
+
+--------------------------------------------------------------------------------
+6.16  POST-DECREMENT OPERATOR  ( obj-- )
+--------------------------------------------------------------------------------
+
+    Student Student::operator--(int) {
+        Student temp(*this);   // Save old state
+        age--;                 // Decrement
+        return temp;           // Return old state
+    }
+
+
+--------------------------------------------------------------------------------
+6.17  UNARY MINUS / NEGATION  ( -obj )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Returns a "negated" version of the object.
+RETURNS:      Student (new object, by value)
+TYPE:         Member, no parameters
+
+    Student Student::operator-() {
+        Student temp(*this);
+        temp.age = -temp.age;    // Negate the age
+        return temp;
+    }
+
+USAGE:
+    Student s1("Alice", 20);
+    Student s2 = -s1;     // s2.age = -20, s1 is unchanged
+
+
+NOTE: This is DIFFERENT from subtraction (binary minus):
+    -s1       → unary minus  → operator-()           → 0 parameters
+    s1 - s2   → subtraction  → operator-(const Student&) → 1 parameter
+
+
+--------------------------------------------------------------------------------
+6.18  LOGICAL NOT OPERATOR  ( !obj )
+--------------------------------------------------------------------------------
+
+WHAT IT DOES: Returns true if the student is "empty" or "invalid".
+RETURNS:      bool
+TYPE:         Member, no parameters
+
+    bool Student::operator!() {
+        // Define what "not" means for your class
+        // Here: a student is "invalid" if name is empty or age is 0
+        return (name == nullptr || mystrlen(name) == 0 || age == 0);
+    }
+
+USAGE:
+    Student s1;
+    if (!s1) cout << "Invalid student!";
+
+
+================================================================================
+7. THE COMPLETE MENTAL CHECKLIST
+================================================================================
+
+Use this EVERY TIME you need to overload an operator:
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                                                                 │
+    │  ✅ STEP 1: What does this operator MEAN for my class?          │
+    │     → Define the logic clearly before writing code              │
+    │                                                                 │
+    │  ✅ STEP 2: What does it RETURN?                                │
+    │     → Comparison (==, !=, <, >, <=, >=)  →  bool                │
+    │     → Modify self (=, ++, --)            →  Class& + return *this│
+    │     → Create new (+, -, *, /)            →  Class (by value)    │
+    │     → Stream (<<, >>)                    →  stream&             │
+    │     → Subscript ([])                     →  element& (reference)│
+    │                                                                 │
+    │  ✅ STEP 3: Member or Friend?                                   │
+    │     → =, [], (), ->                      →  MUST be member      │
+    │     → <<, >>                             →  MUST be friend      │
+    │     → Everything else                    →  Your choice          │
+    │                                                                 │
+    │  ✅ STEP 4: Does my class have dynamic memory (new/delete)?     │
+    │     → YES → Do DEEP copy, free old memory, self-check for =     │
+    │     → NO  → Simple field-by-field copy is fine                  │
+    │                                                                 │
+    │  ✅ STEP 5: Self-assignment check needed?                       │
+    │     → Only for operator=                                        │
+    │     → if (this == &other) return *this;                         │
+    │                                                                 │
+    │  ✅ STEP 6: const correctness?                                  │
+    │     → If NOT modifying the parameter → use const&               │
+    │     → Exception: >> modifies the object, so NO const            │
+    │                                                                 │
+    └─────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+8. COMMON MISTAKES AND HOW TO AVOID THEM
+================================================================================
+
+MISTAKE 1: Forgetting self-assignment check in operator=
+─────────────────────────────────────────────────────────
+    BAD:
+        Student& operator=(const Student& other) {
+            delete[] name;                    // Deletes OUR name
+            name = new char[...];
+            mystrcpy(other.name, name);       // other.name was just deleted!
+            return *this;                     // 💥 CRASH if other IS this
+        }
+
+    GOOD:
+        Student& operator=(const Student& other) {
+            if (this == &other) return *this; // ✅ Check first!
+            delete[] name;
+            name = new char[...];
+            mystrcpy(other.name, name);
+            return *this;
+        }
+
+
+MISTAKE 2: Shallow copy instead of deep copy
+─────────────────────────────────────────────
+    BAD:
+        name = other.name;     // Both point to SAME memory
+                               // When one deletes it, the other crashes!
+
+    GOOD:
+        name = new char[mystrlen(other.name) + 1];  // New memory
+        mystrcpy(other.name, name);                   // Copy content
+
+
+MISTAKE 3: Returning by reference when you should return by value
+─────────────────────────────────────────────────────────────────
+    BAD:
+        Student& operator+(const Student& other) {
+            Student temp;          // Local variable
+            temp.age = age + other.age;
+            return temp;           // 💥 temp is destroyed after function!
+                                   // Returning reference to destroyed object!
+        }
+
+    GOOD:
+        Student operator+(const Student& other) {    // Return by VALUE
+            Student temp;
+            temp.age = age + other.age;
+            return temp;           // ✅ A copy is made before temp is destroyed
+        }
+
+
+MISTAKE 4: Not freeing old memory before assignment
+────────────────────────────────────────────────────
+    BAD:
+        Student& operator=(const Student& other) {
+            // forgot delete[] name;
+            name = new char[...];    // Old memory is LEAKED!
+            ...
+        }
+
+    GOOD:
+        Student& operator=(const Student& other) {
+            if (this == &other) return *this;
+            delete[] name;           // ✅ Free old memory first
+            name = new char[...];
+            ...
+        }
+
+
+MISTAKE 5: Making << a member function
+───────────────────────────────────────
+    BAD (member):
+        ostream& Student::operator<<(ostream& out) {
+            out << name;
+            return out;
+        }
+        // Usage: s1 << cout;   ← BACKWARDS! 😱
+
+    GOOD (friend):
+        friend ostream& operator<<(ostream& out, const Student& s);
+        // Usage: cout << s1;   ← Correct! ✅
+
+
+MISTAKE 6: Confusing pre-increment and post-increment
+──────────────────────────────────────────────────────
+    Pre:  Student& operator++()       ← No parameter
+    Post: Student  operator++(int)    ← Dummy int parameter
+
+    The 'int' doesn't mean anything. You never pass a value.
+    It's just C++'s way of telling them apart.
+
+
+================================================================================
+9. OPERATORS YOU CANNOT OVERLOAD
+================================================================================
+
+These operators CANNOT be overloaded in C++:
+
+    .       (member access)
+    .*      (pointer-to-member access)
+    ::      (scope resolution)
+    ?:      (ternary conditional)
+    sizeof  (size of object)
+    typeid  (type information)
+
+Everything else CAN be overloaded!
+
+
+================================================================================
+10. QUICK REFERENCE CHEAT SHEET
+================================================================================
+
+    ┌────────────┬────────────────┬────────────┬────────────────────────┐
+    │  Operator  │  Return Type   │  Type      │  Key Notes             │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │    =       │  Class&        │  MEMBER    │  Self-check + deep     │
+    │            │                │            │  copy + return *this   │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │   ==  !=   │  bool          │  Either    │  Compare fields        │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │  < > <= >= │  bool          │  Either    │  Reuse each other      │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │  + - * /   │  Class         │  Either    │  Return NEW object     │
+    │            │  (by value)    │            │  (not reference)       │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │   << >>    │  stream&       │  FRIEND    │  Non-member function   │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │    []      │  element&      │  MEMBER    │  Return reference      │
+    │            │                │            │  for read AND write    │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │  ++obj     │  Class&        │  Member    │  No parameter          │
+    │  obj++     │  Class         │  Member    │  Dummy int parameter   │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │  --obj     │  Class&        │  Member    │  No parameter          │
+    │  obj--     │  Class         │  Member    │  Dummy int parameter   │
+    ├────────────┼────────────────┼────────────┼────────────────────────┤
+    │   -obj     │  Class         │  Member    │  Unary, 0 params       │
+    │   !obj     │  bool          │  Member    │  Unary, 0 params       │
+    └────────────┴────────────────┴────────────┴────────────────────────┘
+
+
+REMEMBER:
+    s1 + s2    →  s1.operator+(s2)        (member)
+    cout << s1 →  operator<<(cout, s1)    (friend)
+    ++s1       →  s1.operator++()         (pre, member)
+    s1++       →  s1.operator++(0)        (post, member, dummy 0)
+    s1 = s2    →  s1.operator=(s2)        (member)
+    s1[3]      →  s1.operator[](3)        (member)
+
+
+================================================================================
+                          END OF GUIDE
+       Save this file and refer back to it whenever you need to
+                    overload an operator in C++!
+================================================================================

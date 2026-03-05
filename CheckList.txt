@@ -1,0 +1,18 @@
+When you need to overload an operator:
+
+  ✅ Step 1: What does this operator MEAN for my class?
+  ✅ Step 2: What does it RETURN?
+             - Comparison? → bool
+             - Modify self? → Class& (return *this)
+             - Create new?  → Class (by value)
+             - Stream?      → stream&
+  ✅ Step 3: Member or Friend?
+             - =, [], ()    → MUST be member
+             - <<, >>       → MUST be friend
+             - Everything else → your choice
+  ✅ Step 4: Does my class have dynamic memory (new/delete)?
+             - YES → do deep copy, free old memory
+             - NO  → simple field copy is fine
+  ✅ Step 5: Self-assignment check? (only for =)
+  ✅ Step 6: const correctness?
+             - If you're NOT modifying the parameter → const&

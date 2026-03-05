@@ -1,0 +1,16 @@
+┌─────────────────────────────────────────────────────────────┐
+│                     RULE OF THREE                           │
+│                                                             │
+│  If your class needs ANY ONE of these, it needs ALL THREE:  │
+│                                                             │
+│    1. Destructor          ~Student()                        │
+│    2. Copy Constructor    Student(const Student&)           │
+│    3. Assignment Operator Student& operator=(const Student&)│
+│                                                             │
+│  WHY? If you need a destructor, it means you have dynamic   │
+│  memory. If you have dynamic memory, default copy will do   │
+│  shallow copy. Shallow copy = crash. So you need custom     │
+│  copy constructor AND assignment operator.                  │
+│                                                             │
+│  If you need ONE → you need ALL THREE. Always.              │
+└─────────────────────────────────────────────────────────────┘

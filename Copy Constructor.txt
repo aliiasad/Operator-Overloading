@@ -1,0 +1,16 @@
+// SITUATION 1: Direct initialization with another object
+Student s1("Alice", 20);
+Student s2(s1);            // ✅ Copy constructor called
+
+// SITUATION 2: Using = during CREATION (not assignment!)
+Student s3 = s1;           // ✅ Copy constructor called (NOT operator=)
+
+// SITUATION 3: Passing object BY VALUE to a function
+void printStudent(Student s) { ... }
+printStudent(s1);          // ✅ Copy constructor called (s is a copy of s1)
+
+// SITUATION 4: Returning object BY VALUE from a function
+Student getStudent() {
+    Student temp("Bob", 22);
+    return temp;           // ✅ Copy constructor called
+}
